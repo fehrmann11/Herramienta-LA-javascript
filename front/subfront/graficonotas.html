@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <style>
+        .bar {
+            fill: green;
+        }
+        
+        .highlight {
+            fill: rgb(68, 2, 2);
+        }
+        
+        .title {
+            fill: rgb(7, 14, 20);
+            font-weight: bold;
+        }
+    </style>
+    <script src="https://d3js.org/d3.v4.min.js"></script>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css" integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh" crossorigin="anonymous">
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.min.js" integrity="sha384-wfSDF2E50Y2D1uUdj0O3uMBJnjuUD4Ih7YwaYd1iqfktj0Uod8GCExl3Og8ifwB6" crossorigin="anonymous"></script>
+    <title> Gráfico de barras </title>
+</head>
+
+
+<body>
+    <button style="display:block;margin-left: auto; margin-right: auto;" onclick="location.href='index2.html'" class="btn-success">Volver al Inicio</button>
+    <button style="display:block;margin-left: auto; margin-right: auto;margin-top: 1%;" id="botoncursos" class="btn-success">Volver a cursos</button>
+    <table style="margin-top: 1%;" class="table">
+        <thead class="thead-dark">
+            <tr>
+                <th scope="col">Nombre</th>
+                <th scope="col">Curso</th>
+                <th scope="col">Código</th>
+                <th scope="col">Objetivo del curso</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <th id="nombre_a" scope="row">Selecciona una evaluación en el gráfico.</th>
+                <td id="curso_a">Selecciona una evaluación en el gráfico.</td>
+                <td id="abre_a">Selecciona una evaluación en el gráfico.</td>
+                <td id="objetivo_a">Selecciona una evaluación en el gráfico.</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <!-- Espacio donde irá el gráfico -->
+    <svg style="margin-left: 10%;" width="1500" height="500"></svg>
+
+    <table class="table">
+        <thead class="thead-dark">
+            <tr>
+                <th scope="col">Nombre de prueba</th>
+                <th scope="col">Nota</th>
+                <th scope="col">Feedback</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <th id="nombre_p" scope="row">Selecciona una evaluación en el gráfico.</th>
+                <td id="nota_p">Selecciona una evaluación en el gráfico.</td>
+                <td id="feedback_p">Selecciona una evaluación en el gráfico.</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <!-- Definición del gráfico -->
+    <script>
+        document.querySelector('#botoncursos').addEventListener('click', volver)
+
+        cadVariables = location.search.substring(1, location.search.length);
+        arrVariables = cadVariables.split("&");
+        for (i = 0; i < arrVariables.length; i++) {
+            arrVariableActual = arrVariables[i].split("=");
+            if (isNaN(parseFloat(arrVariableActual[1])))
+                eval(arrVariableActual[0] + "='" + unescape(arrVariableActual[1]) + "';");
+            else
+                eval(arrVariableActual[0] + "=" + arrVariableActual[1] + ";");
+        }
+        id = arrVariables[0].substring(2);
+        curso = arrVariables[1].substring(2);
+
+        function volver() {
+            window.location = 'cursos.html?x=' + id;
+        }
+
+
+        var api = 'http://localhost:3000/notas/' + id + '/' + curso;
+        var svg = d3.select("svg");
+        margin = 200, width = svg.attr("width") - margin,
+            height = svg.attr("height") - margin;
+
+        // Título y propiedades
+        svg.append("text")
+            .attr("transform", "translate(100,0)")
+            .attr("x", 500).attr("y", 50)
+            .attr("font-size", "18px")
+            .attr("class", "title")
+            .text("Notas de evaluaciones")
+            .call(zoom)
+
+
+        var x = d3.scaleBand().range([0, width]).padding(0.5),
+            y = d3.scaleLinear().range([height, 0]);
+
+        var g = svg.append("g")
+            .attr("transform", "translate(" + 100 + "," + 100 + ")")
+
+
+        d3.json(api, async function(error, data) {
+            if (error) {
+                throw error;
+            }
+
+
+            x.domain(data.map(function(d) {
+                return d.NombredePrueba;
+            }));
+            //y.domain([0, 100]);
+            y.domain([0, d3.max(data.map(function(d) {
+                return d.finalgrade;
+            }))]);
+
+            console.log(x.domain())
+            console.log(y.domain())
+
+
+            g.append("g")
+                .attr("transform", "translate(0," + height + ")")
+                .call(d3.axisBottom(x))
+                .append("text")
+                .attr("y", height * 0.15 + 15)
+                .attr("x", width / 2)
+                .attr("text-anchor", "end")
+                .attr("font-size", "18px")
+                .attr("fill", "black")
+                .text("Evaluaciones");
+
+            g.append("g")
+                .append("text")
+                .attr("transform", "rotate(-90)")
+                .attr("y", 50)
+                .attr("dy", "-5.1em")
+                .attr("text-anchor", "end")
+                .attr("font-size", "18px")
+                .attr("fill", "black")
+                .text("Calificación");
+
+            g.append("g")
+                .attr("transform", "translate(0, 0)")
+                .call(d3.axisLeft(y))
+
+            g.selectAll(".bar")
+                .data(data)
+                .enter()
+                .append("rect")
+                .attr("fill", "green")
+                .on("mouseover", onMouseOver)
+                .on("mouseout", onMouseOut)
+                .attr("x", function(d) {
+                    return x(d.NombredePrueba);
+                })
+                .attr("y", function(d) {
+                    return y(d.finalgrade);
+                })
+                .attr("width", x.bandwidth()).transition()
+                .attr("opacity", 0.4)
+                .ease(d3.easeLinear).duration(100)
+                .delay(function(d, i) {
+                    return i * 20;
+                })
+
+            .attr("height", function(d) {
+                return height - y(d.finalgrade);
+            });
+
+
+        });
+
+        function zoom(svg) {
+            const extent = [
+                [margin.left, margin.top],
+                [width - margin.right, height - margin.top]
+            ];
+
+            svg.call(d3.zoom()
+                .scaleExtent([1, 8])
+                .translateExtent(extent)
+                .extent(extent)
+                .on("zoom", zoomed));
+
+            function zoomed() {
+                x.range([margin.left, width - margin.right].map(d => d3.event.transform.applyX(d)));
+                svg.selectAll(".bars rect").attr("x", d => x(d.name)).attr("width", x.bandwidth());
+                svg.selectAll(".x-axis").call(xAxis);
+            }
+        }
+
+        function onMouseOver(d, i) {
+            d3.select(this)
+                .attr("fill", "green")
+                .attr("opacity", 1);
+
+            d3.select(this)
+                .transition()
+                .duration(200)
+                .attr('width', x.bandwidth() + 2)
+                .attr("y", function(d) {
+                    return y(d.finalgrade) - 10;
+                })
+                .attr("height", function(d) {
+                    return height - y(d.finalgrade) + 10;
+                });
+
+            g.append("text")
+                .attr('class', 'val')
+                .attr('x', function() {
+                    return x(d.NombredePrueba);
+                })
+                .attr('y', function() {
+                    return y(d.finalgrade) - 20;
+                })
+                .text(function() {
+                    return ['Nota: ' + d.finalgrade];
+                });
+            var elem1 = document.getElementById('nombre_p');
+            var elem2 = document.getElementById('nota_p');
+            var elem3 = document.getElementById('feedback_p');
+            elem1.innerHTML = `<p>` + d.NombredePrueba + `</p>`;
+            elem2.innerHTML = `<p>` + d.finalgrade + `</p>`;
+            elem3.innerHTML = d.feedback;
+
+            var elem4 = document.getElementById('nombre_a');
+            var elem5 = document.getElementById('curso_a');
+            var elem6 = document.getElementById('abre_a');
+            var elem7 = document.getElementById('objetivo_a');
+            elem4.innerHTML = `<p>` + d.Nombres + ` ` + d.Apellidos + `</p>`;
+            elem5.innerHTML = `<p>` + d.fullname + `</p>`;
+            elem6.innerHTML = `<p>` + d.shortname + `</p>`;
+            elem7.innerHTML = `<p>` + d.summary + `</p>`;
+
+
+
+
+        }
+
+        function onMouseOut(d, i) {
+
+            d3.select(this)
+                .attr("fill", "green")
+                .attr("opacity", 0.4);
+
+            d3.select(this)
+                .transition()
+                .duration(100)
+                .attr('width', x.bandwidth())
+                .attr("y", function(d) {
+                    return y(d.finalgrade);
+                })
+                .attr("height", function(d) {
+                    return height - y(d.finalgrade);
+                });
+
+            d3.selectAll('.val')
+                .remove()
+
+        }
+    </script>
+</body>
+
+</html>

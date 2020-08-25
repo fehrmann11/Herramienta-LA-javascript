@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <style>
+        .card {
+            width: 30rem;
+            float: left;
+            margin-left: 2%;
+            margin-top: 1%;
+            color: white;
+        }
+        
+        img {
+            width: 479px;
+            height: 300px;
+        }
+        
+        .h1 {
+            text-align: center;
+            margin-top: 3%;
+        }
+    </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Predicción</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css" integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh" crossorigin="anonymous">
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.min.js" integrity="sha384-wfSDF2E50Y2D1uUdj0O3uMBJnjuUD4Ih7YwaYd1iqfktj0Uod8GCExl3Og8ifwB6" crossorigin="anonymous"></script>
+</head>
+<style>
+
+</style>
+
+
+<script>
+    //función predicción estres y promedio
+    function estres(veces_logeado, cantidad_cursos, num_recursos, num_evaluaciones, n_pruebas_nf) {
+        return 0.0128 * veces_logeado + cantidad_cursos * 0.3200 + num_recursos * -0.0098 + num_evaluaciones * -0.0074 + n_pruebas_nf * -0.0123;
+    }
+
+    //función promedio
+    function promedio(cantidad_visitas, cantidad_foros, cantidad_cursos, acciones, n_notas) {
+        return -0.0774 * cantidad_visitas + cantidad_foros * 7.8366 + cantidad_cursos * -54.8553 + acciones * 0.1358 + n_notas * 2.8919;
+    }
+
+    function mostrarNombre(nombre) {
+        document.getElementById('nombre').innerHTML = nombre;
+    }
+
+
+
+    //función obtener id
+    cadVariables = location.search.substring(1, location.search.length);
+    arrVariables = cadVariables.split("&");
+    for (i = 0; i < arrVariables.length; i++) {
+        arrVariableActual = arrVariables[i].split("=");
+        if (isNaN(parseFloat(arrVariableActual[1])))
+            eval(arrVariableActual[0] + "='" + unescape(arrVariableActual[1]) + "';");
+        else
+            eval(arrVariableActual[0] + "=" + arrVariableActual[1] + ";");
+    }
+
+    var id = cadVariables.substr(2);
+
+    //obtención de url
+    const alumnos = new XMLHttpRequest;
+    alumnos.open('GET', 'http://localhost:3000/prediccion/' + id, true);
+    alumnos.send();
+    alumnos.onreadystatechange = function() {
+        if (this.readyState == 4 && this.status == 200) {
+            let datos = JSON.parse(this.responseText);
+            console.log(datos[1]);
+            datos[0].map((a) => {
+                //Función de predicción y nombre
+                nombre = a.firstname + " " + a.lastname;
+                mostrarNombre(nombre);
+                prediccion = estres(a.Veces_logeado_en_sist, a.cantidad_cursos, a.numero_recursos, a.cant_evaluaciones, a.num_pruebas_sin_feedback_curso2);
+
+                //Poner texto
+                var div = document.getElementById('estres');
+                var color = document.getElementById('estresColor');
+                var vl = document.getElementById('a');
+                var cc = document.getElementById('b');
+                var nr = document.getElementById('c');
+                var ce = document.getElementById('d');
+                var np = document.getElementById('e');
+
+                //si predicción da menor que 0.5 se muestra en rojo, sino se muestra en verde el div.
+                if (prediccion < 0.5) {
+                    console.log(prediccion);
+                    color.style.backgroundColor = 'green';
+                    vl.innerHTML = a.Veces_logeado_en_sist;
+                    cc.innerHTML = a.cantidad_cursos;
+                    nr.innerHTML = a.numero_recursos;
+                    ce.innerHTML = a.cant_evaluaciones;
+                    np.innerHTML = a.num_pruebas_sin_feedback_curso2;
+
+
+
+                    div.innerHTML = "Por tanto para nosotros usted no está estresado, así que mantenga su comportamiento dentro del curso.";
+                } else {
+                    color.style.backgroundColor = 'red';
+                    vl.innerHTML = a.Veces_logeado_en_sist;
+                    cc.innerHTML = a.cantidad_cursos;
+                    nr.innerHTML = a.numero_recursos;
+                    ce.innerHTML = a.cant_evaluaciones;
+                    np.innerHTML = a.num_pruebas_sin_feedback_curso2;
+                    div.innerHTML = `Por tanto para nosotros usted está estresado, debería disminuir alguna de estos parámetros 
+                                    antes descrito y sugerimos que realice alguna de las siguientes actividades: <br>
+                                    1) Escuchar Música <br>
+                                    2) Dar un paseo <br>
+                                    3) Planificar tu rutina de estudio <br>
+                                    4) Jugar con tu mascota <br>
+                                    5) Dormir lo suficiente <br>
+                                    6) Usar aplicaciones que faciliten el estudio <br>
+                                    7) Dedicarle tiempo a tu mente <br>
+                                    8) Comer chocolate negro <br>
+                                    9) Evitar distracciones al momento de estudiar<br>
+                    `;
+                }
+            })
+
+            //Poner texto
+            var div1 = document.getElementById('promedio');
+            var color1 = document.getElementById('promedioColor');
+            var cant_v = document.getElementById('a1');
+            var cont = document.getElementById('b1');
+            var cant_c = document.getElementById('c1');
+            var foos = document.getElementById('d1');
+            var num_not = document.getElementById('e1');
+
+
+            datos[1].map((a) => {
+                //lamada a la función de predicción
+                var pred = promedio(a.cantidad_de_visitas, a.contador, a.cantidad_cursos, a.foo, a.numero_notas);
+
+                //dos if, si es menor a 7 entra y se evalua si esta bajo el 4.5 o bien si esta en otra escala y pregunta si es menor a 70
+                if (pred <= 7) {
+                    if (pred <= 4.5) {
+                        if (pred < 0) {
+                            pred = 1;
+                        }
+                        color1.style.backgroundColor = 'red';
+                        cant_v.innerHTML = a.cantidad_de_visitas;
+                        cont.innerHTML = a.contador;
+                        cant_c.innerHTML = a.cantidad_cursos;
+                        foos.innerHTML = a.foo;
+                        num_not.innerHTML = a.numero_notas;
+                        div1.innerHTML = `El promedio que obtendrá en el curso si no cambia su comportamiento será el siguiente:  ${pred.toFixed(2)} <br>  
+                        Por tanto usted esta en peligro de reprobar le aconsejamos modifique su comportamiento y a continuación le darémos unos consejos:<br>
+                        1) Establecer prioridades <br>
+                        2) Tomar buenos apuntes <br>
+                        3) Armar un calendario <br>
+                        4) Estudiar en grupo <br>
+                        5) Ser productivo en tus horas de estudio <br>
+                        6) Conocer tus habilidades <br>
+                        7) Asistencia a clases <br>
+
+                         `;
+                    } else {
+                        color1.style.backgroundColor = 'green';
+                        cant_v.innerHTML = a.cantidad_de_visitas;
+                        cont.innerHTML = a.contador;
+                        cant_c.innerHTML = a.cantidad_cursos;
+                        foos.innerHTML = a.foo;
+                        num_not.innerHTML = a.numero_notas;
+                        div1.innerHTML = `El promedio que obtendrá será el siguiente:  ${pred.toFixed(2)} <br>  
+                         Por tanto usted no esta en peligro de reprobar le aconsejamos seguir así y reflexionar sobre su comportamiento, a continuación le darémos unos consejos para mejorar su rendimiento:<br>
+
+                         1) Tomar buenos apuntes <br>
+                         2) Armar un calendario <br>
+                         3) Estudiar en grupo <br>
+                         4) Ser productivo en tus horas de estudio <br>
+                          `;
+                    }
+                } else {
+                    if (pred < 70) {
+                        if (pred < 0) {
+                            pred = 1;
+                        }
+                        color1.style.backgroundColor = 'red';
+                        cant_v.innerHTML = a.cantidad_de_visitas;
+                        cont.innerHTML = a.contador;
+                        cant_c.innerHTML = a.cantidad_cursos;
+                        foos.innerHTML = a.foo;
+                        num_not.innerHTML = a.numero_notas;
+                        div1.innerHTML = `El promedio que obtendrá en el curso si no cambia su comportamiento será el siguiente:  ${pred.toFixed(2)} <br>  
+                        Por tanto usted esta en peligro de reprobar le aconsejamos modifique su comportamiento y a continuación le darémos unos consejos:<br>
+                        1) Establecer prioridades <br>
+                        2) Tomar buenos apuntes <br>
+                        3) Armar un calendario <br>
+                        4) Estudiar en grupo <br>
+                        5) Ser productivo en tus horas de estudio <br>
+                        6) Conocer tus habilidades <br>
+                        7) Asistencia a clases <br>
+
+                         `;
+                    } else {
+                        color1.style.backgroundColor = 'green';
+                        cant_v.innerHTML = a.cantidad_de_visitas;
+                        cont.innerHTML = a.contador;
+                        cant_c.innerHTML = a.cantidad_cursos;
+                        foos.innerHTML = a.foo;
+                        num_not.innerHTML = a.numero_notas;
+                        div1.innerHTML = `El promedio que obtendrá será el siguiente:  ${pred.toFixed(2)} <br>  
+                         Por tanto usted no esta en peligro de reprobar le aconsejamos seguir así y reflexionar sobre su comportamiento, a continuación le darémos unos consejos para mejorar su rendimiento:<br>
+
+                         1) Tomar buenos apuntes <br>
+                         2) Armar un calendario <br>
+                         3) Estudiar en grupo <br>
+                         4) Ser productivo en tus horas de estudio <br>
+                          `;
+                    }
+                }
+
+            })
+
+        }
+    }
+</script>
+
+
+<body style="background-color: lightblue;">
+    <p class="h1">Predicciones de <span id="nombre"></span></p>
+    <div id="princi">
+        <div class="card" id="estresColor" style="margin-left: 20%;">
+            <div class="card-body">
+                <h5 class="card-title">Predicción estrés</h5>
+                <p class="card-text">La variables que están asociadas a esta predicción son las siguientes:
+                    <li>Cantidad de cursos inscritos: <span id="b"></span></li>
+                    <li>Número de evaluaciones del curso: <span id="d"></span></li>
+                    <li>Cantidad de veces logeado al sistema: <span id="a"></span> </li>
+                    <li>Número de pruebas sin feedback: <span id="e"></span> </li>
+                    <li>Número de recursos de la asignatura: <span id="c"></span></li>
+                    <br>
+                    <span id="estres"></span>
+                </p>
+
+            </div>
+        </div>
+        <div class="card" id="promedioColor">
+
+            <div class="card-body">
+                <h5 class="card-title">Predicción promedio a obtener</h5>
+                <p class="card-text">La variables que están asociadas a esta predicción son las siguientes:
+                    <li>Cantidad de visitas al curso: <span id="a1"></span></li>
+                    <li>Participaciones al foro del curso: <span id="b1"></span></li>
+                    <li>Cantidad de cursos inscritos: <span id="c1"></span> </li>
+                    <li>Número de acciones: <span id="d1"></span> </li>
+                    <li>Cantidad de notas del curso: <span id="e1"></span></li>
+                    <br>
+                    <span id="promedio"></span>
+                </p>
+
+            </div>
+        </div>
+    </div>
+    <div style="clear: both;">
+
+    </div>
+    <a href="../principal.html" style="text-align: center; margin-left: 45%; margin-top: 10px;" class="btn btn-primary">Volver al inicio</a>
+
+</body>
+
+</html>

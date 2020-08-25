@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <style>
+        .bar {
+            fill: green;
+        }
+        
+        .highlight {
+            fill: rgb(6, 2, 2);
+        }
+        
+        .title {
+            fill: rgb(7, 14, 20);
+            font-weight: bold;
+        }
+        
+        #miDiv {
+            background: lightgreen;
+            width: 300px;
+            padding: 10px;
+            border: 2px solid skyblue;
+            font-size: medium;
+            font-family: Arial, Helvetica, sans-serif;
+        }
+    </style>
+    <script src="https://d3js.org/d3.v4.min.js"></script>
+    <title> Gráfico de barras </title>
+</head>
+
+<body>
+    <!-- Espacio donde irá el gráfico -->
+    <svg id="framework" width="900" height="500"></svg>
+
+    <!-- Definición del gráfico -->
+    <script>
+        var api = 'http://localhost:3000/one';
+        //var p1 = 'http://localhost:3000/index';
+        var p2 = 'http://localhost:3000/promedio';
+
+
+        //json
+        function Get(yourUrl) {
+            var Httpreq = new XMLHttpRequest(); // a new request
+            Httpreq.open("GET", yourUrl, false);
+            Httpreq.send(null);
+            return Httpreq.responseText;
+        }
+
+        var json_obj = JSON.parse(Get('http://localhost:3000/promedio'));
+        console.log(json_obj);
+
+        var json_obj2 = JSON.parse(Get('http://localhost:3000/post'));
+        console.log(json_obj2);
+
+
+        //union 1
+        var c = 0;
+        var data = [];
+        json_obj.forEach(function(promedio) {
+            json_obj2.forEach(function(post) {
+                if (promedio.userid == post.userid) {
+                    c = c + 1;
+
+                    data = data + JSON.stringify({
+                        id: promedio.userid,
+                        firstname: promedio.firstname,
+                        lastname: promedio.lastname,
+                        promedio: promedio.prom,
+                        post: post.contador
+                    })
+                }
+            })
+        });
+
+        console.log(data)
+        console.log(typeof(data))
+            /*
+            var mapeo = {};
+            json_obj.forEach(element => {mapeo[]
+
+            });*/
+
+        //console.log(p1);
+        console.log(typeof(p2));
+        var svg = d3.select("svg"),
+            margin = 200,
+            width = svg.attr("width") - margin,
+            height = svg.attr("height") - margin;
+
+        // Título y propiedades
+        svg.append("text")
+            .attr("transform", "translate(100,0)")
+            .attr("x", 200).attr("y", 50)
+            .attr("font-size", "18px")
+            .attr("class", "title")
+            .text("Promedio y número de mensajes en foros curso Taller de programación 2018")
+
+
+        var x = d3.scaleBand().range([0, width]).padding(0.5),
+            y = d3.scaleLinear().range([height, 0]);
+
+        var g = svg.append("g")
+            .attr("transform", "translate(" + 100 + "," + 100 + ")");
+
+        d3.json(api, async function(error, data) {
+            if (error) {
+                throw error;
+            }
+            console.log("hola")
+            console.log(data);
+            x.domain(data.map(function(d) {
+                return d.firstname;
+            }));
+            y.domain([0, d3.max(data.map(function(d) {
+                return d.mensaje;
+            }))]);
+
+            console.log(x.domain())
+            console.log(y.domain())
+
+            g.append("g")
+                .attr("transform", "translate(0," + height + ")")
+                .call(d3.axisBottom(x))
+                .append("text")
+                .attr("y", height * 0.15)
+                .attr("x", width / 2)
+                .attr("text-anchor", "end")
+                .attr("font-size", "18px")
+                .attr("fill", "black")
+                .text("usuario");
+
+            g.append("g")
+                .append("text")
+                .attr("transform", "rotate(-90)")
+                .attr("y", 20)
+                .attr("dy", "-5.1em")
+                .attr("text-anchor", "end")
+                .attr("font-size", "18px")
+                .attr("fill", "black")
+                .text("número de mensajes");
+
+            g.append("g")
+                .attr("transform", "translate(0, 0)")
+                .call(d3.axisLeft(y))
+
+            g.selectAll(".bar")
+                .data(data)
+                .enter()
+                .append("rect")
+                .attr("class", "bar")
+                .on("mouseover", onMouseOver)
+                .on("mouseout", onMouseOut)
+                .attr("x", function(d) {
+                    return x(d.firstname);
+                })
+                .attr("y", function(d) {
+                    return y(d.mensaje);
+                })
+                .attr("width", x.bandwidth()).transition()
+                .attr("opacity", 0.2)
+                .ease(d3.easeLinear).duration(100)
+                .delay(function(d, i) {
+                    return i * 20;
+                })
+
+            .attr("height", function(d) {
+                return height - y(d.mensaje);
+            });
+        });
+
+
+        function onMouseOver(d, i) {
+            d3.select(this)
+                .attr('class', 'highlight')
+                .attr("opacity", 1);
+
+            d3.select(this)
+                .transition()
+                .duration(200)
+                .attr('width', x.bandwidth() + 2)
+                .attr("y", function(d) {
+                    return y(d.mensaje) - 10;
+                })
+                .attr("height", function(d) {
+                    return height - y(d.mensaje) + 10;
+                });
+
+            g.append("text")
+                .attr('class', 'val')
+                .attr('x', function() {
+                    return x(d.firstname);
+                })
+                .attr('y', function() {
+                    return y(d.mensaje) - 20;
+                })
+                .text(function() {
+                    document.getElementById("miDiv").innerHTML = d.firstname + " " + d.lastname + "<br>" + "Promedio: " + d.promedio + "<br>" + "Número de participaciones: " + d.mensaje
+                    return [d.firstname + " " + d.lastname];
+                });
+        }
+
+        function onMouseOut(d, i) {
+
+            d3.select(this)
+                .attr('class', 'bar')
+                .attr("opacity", 0.2);
+
+            d3.select(this)
+                .transition()
+                .duration(100)
+                .attr('width', x.bandwidth())
+                .attr("y", function(d) {
+                    return y(d.mensaje);
+                })
+                .attr("height", function(d) {
+                    return height - y(d.mensaje);
+                });
+
+            d3.selectAll('.val')
+                .remove()
+        }
+    </script>
+    <H2>Datos de los estudiantes</H2>
+    <div>
+        <div id="miDiv"></div>
+    </div>
+
+
+
+
+</body>
+
+</html>

@@ -1,0 +1,19 @@
+.bar {
+    fill: rgb(0, 174, 255);
+ }
+
+ .highlight {
+    fill: rgb(0, 81, 255);
+ }
+ 
+ .title {
+    fill: rgb(7, 14, 20);
+    font-weight: bold;
+ }
+.right{
+    float: right;
+}
+.limpiar{
+    float: none;
+    overflow: hidden;
+}
